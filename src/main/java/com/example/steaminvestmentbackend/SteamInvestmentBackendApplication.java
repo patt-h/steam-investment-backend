@@ -1,4 +1,4 @@
-package com.example.steam_investment_backend;
+package com.example.steaminvestmentbackend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
