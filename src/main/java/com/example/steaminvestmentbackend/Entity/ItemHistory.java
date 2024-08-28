@@ -6,32 +6,26 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Data
 @Entity
-@Table(name = "user_items")
-public class Item {
+@Table(name = "item_history")
+public class ItemHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
-    private Long userId;
-
-    @Column(name = "market_hash_name")
-    private String marketHashName;
-
-    @Column(name = "price")
-    private Float price;
-
-    @Column(name = "quantity")
-    private Integer quantity;
-
     @Column(name = "item_id")
     private Long itemId;
 
+    @Column(name = "date")
+    private LocalDate date;
+
+    @Column(name = "price")
+    private Float price;
 }

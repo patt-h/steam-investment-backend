@@ -3,6 +3,7 @@ package com.example.steaminvestmentbackend.Service;
 import com.example.steaminvestmentbackend.DTO.UserDTO;
 import com.example.steaminvestmentbackend.Entity.Item;
 import com.example.steaminvestmentbackend.Exceptions.AppException;
+import com.example.steaminvestmentbackend.Repository.ItemListRepository;
 import com.example.steaminvestmentbackend.Repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class ItemService {
 
     private final ItemRepository itemRepository;
+    private final ItemListRepository itemListRepository;
 
     public List<Item> getAll(@AuthenticationPrincipal UserDTO userDTO) {
         return itemRepository.findByUserId(userDTO.getId());
@@ -24,6 +26,7 @@ public class ItemService {
 
     public List<Item> addNew(List<Item> items, @AuthenticationPrincipal UserDTO userDTO) {
         for (Item i : items) {
+            i.setItemId(itemListRepository.findByMarketHashName(i.getMarketHashName()).getId());
             i.setUserId(userDTO.getId());
         }
 
@@ -43,11 +46,11 @@ public class ItemService {
                 throw new AppException("Access denied, user id doesn't match item user id", HttpStatus.FORBIDDEN);
             } else {
                 item.setUserId(userDTO.getId());
-                if (item.getName() == null) {
-                    item.setName(itemToUpdate.get().getName());
-                }
                 if (item.getMarketHashName() == null) {
                     item.setMarketHashName(itemToUpdate.get().getMarketHashName());
+                    item.setItemId(itemToUpdate.get().getItemId());
+                } else {
+                    item.setItemId(itemListRepository.findByMarketHashName(item.getMarketHashName()).getId());
                 }
                 if (item.getPrice() == null) {
                     item.setPrice(itemToUpdate.get().getPrice());
