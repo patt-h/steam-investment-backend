@@ -55,6 +55,9 @@ public class ItemService {
                 if (item.getPrice() == null) {
                     item.setPrice(itemToUpdate.get().getPrice());
                 }
+                if (item.getCurrency() == null) {
+                    item.setCurrency(itemToUpdate.get().getCurrency());
+                }
                 if (item.getQuantity() == null) {
                     item.setQuantity(itemToUpdate.get().getQuantity());
                 }

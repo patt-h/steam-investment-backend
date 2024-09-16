@@ -39,7 +39,7 @@ public class ItemHistoryService {
             Optional<ItemList> item = itemListRepository.findById(id);
             if (item.isPresent()) {
                 try {
-                    System.out.println("Fetching data from Steam");
+                    System.out.println("Fetching history data from Steam");
                     List<ItemHistory> fetchHistory = fetchAndParseData(item.get().getMarketHashName(), item.get().getId());
                     itemHistoryRepository.saveAll(fetchHistory);
                 } catch (AppException e) {
@@ -58,10 +58,14 @@ public class ItemHistoryService {
         List<ItemHistory> prices = new ArrayList<>();
 
         for (Long itemId : id) {
-            ItemHistory history = itemHistoryRepository.findByItemIdAndDate(itemId, LocalDate.now());
-            if (history == null) {
+            ItemHistory todayPrice = itemHistoryRepository.findByItemIdAndDate(itemId, LocalDate.now());
+            if (todayPrice == null) {
                 Optional<ItemList> item = itemListRepository.findById(itemId);
                 if (item.isPresent()) {
+                    List<ItemHistory> wholeHistory = itemHistoryRepository.findByItemId(itemId);
+                    if (wholeHistory.isEmpty()) {
+                        throw new AppException("Couldn't find whole price history of provided item", HttpStatus.BAD_REQUEST);
+                    }
                     System.out.println("Fetching current price data from Steam");
                     ItemHistory fetchCurrent = fetchCurrentData(item.get().getMarketHashName(), item.get().getId());
                     itemHistoryRepository.save(fetchCurrent);
@@ -69,9 +73,8 @@ public class ItemHistoryService {
                 } else {
                     throw new AppException("Item with provided id doesn't exist", HttpStatus.NOT_FOUND);
                 }
-            }
-            else {
-                prices.add(history);
+            } else {
+                prices.add(todayPrice);
             }
         }
 
@@ -82,12 +85,7 @@ public class ItemHistoryService {
         String url = "https://steamcommunity.com/market/pricehistory/?appid=730&market_hash_name=" + marketHashName;
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.add("Cookie", "steamLoginSecure=76561198407317357%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0." +
-                "eyAiaXNzIjogInI6MEY0M18yNEVFQkQ4RF82NDFBRiIsICJzdWIiOiAiNzY1NjExOTg0MDczMTczNTciLCAiYXVkI" +
-                "jogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MjU5NjY3NTQsICJuYmYiOiAxNzE3MjM4OTE2LCAiaWF0I" +
-                "jogMTcyNTg3ODkxNiwgImp0aSI6ICIxMDY4XzI1MDEzMjg3XzcyNzA0IiwgIm9hdCI6IDE3MjQzNDMyOTcsICJydF9leHAiOiAxNzQyNzc5ODU1LCAicGVyI" +
-                "jogMCwgImlwX3N1YmplY3QiOiAiODkuNjQuMTUuNDIiLCAiaXBfY29uZmlybWVyIjogIjg5LjY0LjE1LjQyIiB9." +
-                "HTb7xrY__OPljGYusYI-d409Z3oSgP2hQq9J76ZSCUizUe8bWTS9RzH2iWF-V-xrNNk40E7XPXWmrUEMjJ4yCw");
+        requestHeaders.add("Cookie", "steamLoginSecure=76561198407317357%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTY5RF8yNTBEMjEwRl9BNzJFOSIsICJzdWIiOiAiNzY1NjExOTg0MDczMTczNTciLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MjY1MzA3ODYsICJuYmYiOiAxNzE3ODA0MDQ4LCAiaWF0IjogMTcyNjQ0NDA0OCwgImp0aSI6ICIxNjRDXzI1MEQyMTBGX0I4RDhCIiwgIm9hdCI6IDE3MjY0NDQwNDcsICJydF9leHAiOiAxNzQ0NjA2ODY5LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiODkuNjQuMTUuNDIiLCAiaXBfY29uZmlybWVyIjogIjg5LjY0LjE1LjQyIiB9.GjbE23-T_gXHpGQS64QsBqWv6BfYAkMG4DO2ukiNbbulrvxryE1C5BHPpkCeypEFmGmCobzC5qWILXRdKILnAA");
         HttpEntity<?> requestEntity = new HttpEntity<>(null, requestHeaders);
 
         List<ItemHistory> itemHistoryList = new ArrayList<>();

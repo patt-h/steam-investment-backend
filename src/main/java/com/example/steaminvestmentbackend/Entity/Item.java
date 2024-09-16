@@ -28,6 +28,9 @@ public class Item {
     @Column(name = "price")
     private Float price;
 
+    @Column(name = "currency")
+    private String currency;
+
     @Column(name = "quantity")
     private Integer quantity;
 
