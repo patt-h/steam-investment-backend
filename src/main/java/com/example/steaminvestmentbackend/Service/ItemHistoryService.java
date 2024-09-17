@@ -54,6 +54,30 @@ public class ItemHistoryService {
         return itemHistoryRepository.findByItemId(id);
     }
 
+    public List<ItemHistory> getItemHistoryByName(String name) throws IOException {
+        ItemList item = itemListRepository.findByMarketHashName(name);
+
+        if (item != null) {
+            List<ItemHistory> history = itemHistoryRepository.findByItemId(item.getId());
+
+            if (history.isEmpty()) {
+                try {
+                    System.out.println("Fetching history data from Steam");
+                    List<ItemHistory> fetchHistory = fetchAndParseData(item.getMarketHashName(), item.getId());
+                    itemHistoryRepository.saveAll(fetchHistory);
+                } catch (AppException e) {
+                    System.out.println(e.getStatus());
+                    throw new AppException("Could not fetch item history due to API limits", HttpStatus.SERVICE_UNAVAILABLE);
+                }
+            }
+        } else {
+            throw new AppException("Item with provided name doesn't exist", HttpStatus.NOT_FOUND);
+        }
+
+        return itemHistoryRepository.findByItemId(item.getId());
+
+    }
+
     public List<ItemHistory> getTodayItemPrice(List<Long> id) throws IOException {
         List<ItemHistory> prices = new ArrayList<>();
 
@@ -85,7 +109,7 @@ public class ItemHistoryService {
         String url = "https://steamcommunity.com/market/pricehistory/?appid=730&market_hash_name=" + marketHashName;
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.add("Cookie", "steamLoginSecure=76561198407317357%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTY5RF8yNTBEMjEwRl9BNzJFOSIsICJzdWIiOiAiNzY1NjExOTg0MDczMTczNTciLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MjY1MzA3ODYsICJuYmYiOiAxNzE3ODA0MDQ4LCAiaWF0IjogMTcyNjQ0NDA0OCwgImp0aSI6ICIxNjRDXzI1MEQyMTBGX0I4RDhCIiwgIm9hdCI6IDE3MjY0NDQwNDcsICJydF9leHAiOiAxNzQ0NjA2ODY5LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiODkuNjQuMTUuNDIiLCAiaXBfY29uZmlybWVyIjogIjg5LjY0LjE1LjQyIiB9.GjbE23-T_gXHpGQS64QsBqWv6BfYAkMG4DO2ukiNbbulrvxryE1C5BHPpkCeypEFmGmCobzC5qWILXRdKILnAA");
+        requestHeaders.add("Cookie", "steamLoginSecure=76561198407317357%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTY5RF8yNTBEMjEwRl9BNzJFOSIsICJzdWIiOiAiNzY1NjExOTg0MDczMTczNTciLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MjY2ODM3ODQsICJuYmYiOiAxNzE3OTU1Nzc1LCAiaWF0IjogMTcyNjU5NTc3NSwgImp0aSI6ICIxNjRDXzI1MEQyMTJDX0Y4MzEyIiwgIm9hdCI6IDE3MjY0NDQwNDcsICJydF9leHAiOiAxNzQ0NjA2ODY5LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiODkuNjQuMTUuNDIiLCAiaXBfY29uZmlybWVyIjogIjg5LjY0LjE1LjQyIiB9.utDH3hC2Uv4W2aIgUqcbItr6GgQqi4Q6qq24BGnzTp6ddtxawGKjio2JmD6Oh6fTAxMkJAkSKlRBdZy5U2wfAA");
         HttpEntity<?> requestEntity = new HttpEntity<>(null, requestHeaders);
 
         List<ItemHistory> itemHistoryList = new ArrayList<>();

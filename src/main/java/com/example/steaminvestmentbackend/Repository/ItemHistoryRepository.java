@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public interface ItemHistoryRepository extends JpaRepository<ItemHistory, Long> {
 
