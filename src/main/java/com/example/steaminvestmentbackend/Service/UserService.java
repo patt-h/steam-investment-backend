@@ -4,10 +4,12 @@ import com.example.steaminvestmentbackend.DTO.CredentialsDTO;
 import com.example.steaminvestmentbackend.DTO.SignUpDTO;
 import com.example.steaminvestmentbackend.DTO.UserDTO;
 import com.example.steaminvestmentbackend.Entity.ConfirmationToken;
+import com.example.steaminvestmentbackend.Entity.Settings;
 import com.example.steaminvestmentbackend.Entity.User;
 import com.example.steaminvestmentbackend.Exceptions.AppException;
 import com.example.steaminvestmentbackend.Mappers.UserMapper;
 import com.example.steaminvestmentbackend.Repository.ConfirmationTokenRepository;
+import com.example.steaminvestmentbackend.Repository.SettingsRepository;
 import com.example.steaminvestmentbackend.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SettingsRepository settingsRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final ConfirmationTokenRepository confirmationTokenRepository;
@@ -93,6 +96,12 @@ public class UserService {
                     .orElseThrow(() -> new AppException("Couldn't find user with provided ID", HttpStatus.NOT_FOUND));
             user.setEnabled(true);
             userRepository.save(user);
+
+            Settings settings = Settings.builder()
+                            .userId(user.getId())
+                            .currency("USD")
+                            .build();
+            settingsRepository.save(settings);
 
             confirmationToken.setConfirmedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             confirmationTokenRepository.save(confirmationToken);
