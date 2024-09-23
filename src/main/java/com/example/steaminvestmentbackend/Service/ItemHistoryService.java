@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -168,7 +167,9 @@ public class ItemHistoryService {
                 .replaceAll("[^0-9.]", "");
 
         ItemHistory itemHistory = new ItemHistory();
-        itemHistory.setItemId(itemId);
+        if (itemId != null) {
+            itemHistory.setItemId(itemId);
+        }
         itemHistory.setDate(LocalDate.now());
         itemHistory.setPrice(Float.parseFloat(priceString));
 
