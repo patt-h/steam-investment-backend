@@ -25,7 +25,7 @@ public class SettingsService {
     }
 
     public Settings update(Settings settings, @AuthenticationPrincipal UserDTO userDTO) {
-        // If settings body doesn't have id
+        // If request doesn't have id
         if (settings.getId() == null) {
             throw new AppException("Settings can't be null", HttpStatus.BAD_REQUEST);
         } else {
@@ -38,9 +38,12 @@ public class SettingsService {
                 throw new AppException("Access denied, user id doesn't match settings user id", HttpStatus.FORBIDDEN);
             } else {
                 settings.setUserId(userDTO.getId());
-                // Goal without change
+                // Without goal in request
                 if (settings.getGoalName() == null) {
                     settings.setGoalName(settingToUpdate.get().getGoalName());
+                    settings.setGoalItemId(settingToUpdate.get().getGoalItemId());
+                } else if (settings.getGoalName().equals(settingToUpdate.get().getGoalName())) {
+                    // Goal same as existing
                     settings.setGoalItemId(settingToUpdate.get().getGoalItemId());
                 } else {
                     // If user change goal, first check if provided item exists
@@ -51,7 +54,7 @@ public class SettingsService {
                         settings.setGoalItemId(item.getId());
                     }
                 }
-                // Currency without change
+                // Without currency in JSON
                 if (settings.getCurrency() == null) {
                     settings.setCurrency(settingToUpdate.get().getCurrency());
                 }

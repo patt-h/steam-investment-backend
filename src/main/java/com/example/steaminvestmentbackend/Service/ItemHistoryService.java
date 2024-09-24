@@ -167,9 +167,7 @@ public class ItemHistoryService {
                 .replaceAll("[^0-9.]", "");
 
         ItemHistory itemHistory = new ItemHistory();
-        if (itemId != null) {
-            itemHistory.setItemId(itemId);
-        }
+        itemHistory.setItemId(itemId);
         itemHistory.setDate(LocalDate.now());
         itemHistory.setPrice(Float.parseFloat(priceString));
 
