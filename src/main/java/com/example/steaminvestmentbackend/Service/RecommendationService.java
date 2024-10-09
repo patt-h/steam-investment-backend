@@ -61,7 +61,7 @@ public class RecommendationService {
                         stickerCandidates.add(item.getMarketHashName());
                     }
                 } else {
-                    if (!item.getMarketHashName().contains("Key") && isSimilar(userItem, item) && !userItemNames.contains(item.getMarketHashName())) {
+                    if (!item.getMarketHashName().contains("Key") && !item.getMarketHashName().contains("Pass") && isSimilar(userItem, item) && !userItemNames.contains(item.getMarketHashName())) {
                         recommendations.add(item.getMarketHashName());
                     }
                 }
