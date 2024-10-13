@@ -4,9 +4,11 @@ import com.example.steaminvestmentbackend.DTO.SteamCurrentDTO;
 import com.example.steaminvestmentbackend.DTO.SteamHistoryDTO;
 import com.example.steaminvestmentbackend.Entity.ItemHistory;
 import com.example.steaminvestmentbackend.Entity.ItemList;
+import com.example.steaminvestmentbackend.Entity.SteamToken;
 import com.example.steaminvestmentbackend.Exceptions.AppException;
 import com.example.steaminvestmentbackend.Repository.ItemHistoryRepository;
 import com.example.steaminvestmentbackend.Repository.ItemListRepository;
+import com.example.steaminvestmentbackend.Repository.SteamTokenRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -16,6 +18,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.chrono.ChronoLocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
@@ -26,6 +31,7 @@ public class ItemHistoryService {
 
     private final ItemHistoryRepository itemHistoryRepository;
     private final ItemListRepository itemListRepository;
+    private final SteamTokenRepository steamTokenRepository;
     private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .appendPattern("MMM dd yyyy")
@@ -42,8 +48,8 @@ public class ItemHistoryService {
                     List<ItemHistory> fetchHistory = fetchAndParseData(item.get().getMarketHashName(), item.get().getId());
                     itemHistoryRepository.saveAll(fetchHistory);
                 } catch (AppException e) {
-                    System.out.println(e.getStatus());
-                    throw new AppException("Could not fetch item history due to API limits", HttpStatus.SERVICE_UNAVAILABLE);
+                    System.out.println("Error status: " + e.getStatus());
+                    throw e;
                 }
             } else {
                 throw new AppException("Item with provided id doesn't exist", HttpStatus.NOT_FOUND);
@@ -65,8 +71,8 @@ public class ItemHistoryService {
                     List<ItemHistory> fetchHistory = fetchAndParseData(item.getMarketHashName(), item.getId());
                     itemHistoryRepository.saveAll(fetchHistory);
                 } catch (AppException e) {
-                    System.out.println(e.getStatus());
-                    throw new AppException("Could not fetch item history due to API limits", HttpStatus.SERVICE_UNAVAILABLE);
+                    System.out.println("Error status: " + e.getStatus());
+                    throw e;
                 }
             }
         } else {
@@ -108,7 +114,15 @@ public class ItemHistoryService {
         String url = "https://steamcommunity.com/market/pricehistory/?appid=730&market_hash_name=" + marketHashName;
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.add("Cookie", "steamLoginSecure=76561198407317357%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTY5RF8yNTBEMjEwRl9BNzJFOSIsICJzdWIiOiAiNzY1NjExOTg0MDczMTczNTciLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MjY2ODM3ODQsICJuYmYiOiAxNzE3OTU1Nzc1LCAiaWF0IjogMTcyNjU5NTc3NSwgImp0aSI6ICIxNjRDXzI1MEQyMTJDX0Y4MzEyIiwgIm9hdCI6IDE3MjY0NDQwNDcsICJydF9leHAiOiAxNzQ0NjA2ODY5LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiODkuNjQuMTUuNDIiLCAiaXBfY29uZmlybWVyIjogIjg5LjY0LjE1LjQyIiB9.utDH3hC2Uv4W2aIgUqcbItr6GgQqi4Q6qq24BGnzTp6ddtxawGKjio2JmD6Oh6fTAxMkJAkSKlRBdZy5U2wfAA");
+
+        SteamToken steamToken = steamTokenRepository.findFirstByOrderByIdDesc();
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+
+        if (steamToken.getExpirationDate().isBefore(ChronoLocalDateTime.from(now))) {
+            throw new AppException("Steam Token has expired", HttpStatus.FORBIDDEN);
+        }
+
+        requestHeaders.add("Cookie", "steamLoginSecure=" + steamToken.getToken());
         HttpEntity<?> requestEntity = new HttpEntity<>(null, requestHeaders);
 
         List<ItemHistory> itemHistoryList = new ArrayList<>();
@@ -130,7 +144,7 @@ public class ItemHistoryService {
             SteamHistoryDTO priceResponse = objectMapper.readValue(jsonData, SteamHistoryDTO.class);
 
             for (List<String> priceData : priceResponse.getPrices()) {
-                String dateString = priceData.get(0).substring(0, 11); // np. "May 27 2015"
+                String dateString = priceData.get(0).substring(0, 11);
                 LocalDate date = LocalDate.parse(dateString, formatter);
 
                 if (date.isAfter(oneYearAgo) && date.isBefore(today)) {
