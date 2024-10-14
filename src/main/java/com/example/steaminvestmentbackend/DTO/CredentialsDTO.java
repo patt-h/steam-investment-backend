@@ -13,4 +13,5 @@ public class CredentialsDTO {
 
     private String username;
     private char[] password;
+    private boolean rememberMe;
 }
