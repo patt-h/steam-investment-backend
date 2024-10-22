@@ -40,6 +40,11 @@ public class AuthController {
         return userService.confirmEmail(token);
     }
 
+    @PostMapping("/resend-token")
+    public ResponseEntity<?> resendToken(@RequestParam("token") String token) {
+        return userService.resendToken(token);
+    }
+
     @PostMapping("/verify")
     public Object isValid(@RequestBody @Valid TokenDTO token) {
         try {

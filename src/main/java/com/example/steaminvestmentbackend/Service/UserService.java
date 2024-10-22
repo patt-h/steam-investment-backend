@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.nio.CharBuffer;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.chrono.ChronoLocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
@@ -76,7 +79,7 @@ public class UserService {
                 You are one step away from tracking your budget.
                 Click the link below to confirm your account registration!
                 
-                """ + "http://localhost:8080/confirm-account?token=" + confirmationToken.getToken());
+                """ + "http://localhost:3000/confirm-account?token=" + confirmationToken.getToken());
         emailService.sendEmail(mailMessage);
 
         return ResponseEntity.ok("Complete the registration using the link that was sent to your email address");
@@ -94,6 +97,15 @@ public class UserService {
         if (confirmationToken != null) {
             User user = userRepository.findById(confirmationToken.getUserId())
                     .orElseThrow(() -> new AppException("Couldn't find user with provided ID", HttpStatus.NOT_FOUND));
+
+            if (user.getEnabled()) {
+                throw new AppException("Account is already enabled", HttpStatus.BAD_REQUEST);
+            }
+
+            if (confirmationToken.getExpiresAt().isBefore(ChronoLocalDateTime.from(LocalDateTime.now()))) {
+                throw new AppException("Token has expired", HttpStatus.FORBIDDEN);
+            }
+
             user.setEnabled(true);
             userRepository.save(user);
 
@@ -105,8 +117,42 @@ public class UserService {
 
             confirmationToken.setConfirmedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             confirmationTokenRepository.save(confirmationToken);
+        } else {
+            throw new AppException("Token doesn't exist", HttpStatus.NOT_FOUND);
         }
 
         return ResponseEntity.ok("Your account has been successfully verified!");
+    }
+
+    public ResponseEntity<?> resendToken(String token) {
+        ConfirmationToken confirmationToken = confirmationTokenRepository.findByToken(token);
+
+        if (confirmationToken != null) {
+            User user = userRepository.findById(confirmationToken.getUserId())
+                    .orElseThrow(() -> new AppException("Couldn't find user with provided ID", HttpStatus.NOT_FOUND));
+
+            if (user.getEnabled()) {
+                throw new AppException("Account is already enabled", HttpStatus.BAD_REQUEST);
+            }
+
+            ConfirmationToken newConfirmationToken = new ConfirmationToken();
+            newConfirmationToken.setUserId(user.getId());
+            confirmationTokenRepository.save(newConfirmationToken);
+
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
+            mailMessage.setTo(user.getEmail());
+            mailMessage.setSubject("Hey! Here is your new registration link!");
+            mailMessage.setText("""
+                You are one step away from tracking your budget.
+                Click the link below to confirm your account registration!
+                
+                """ + "http://localhost:3000/confirm-account?token=" + newConfirmationToken.getToken());
+            emailService.sendEmail(mailMessage);
+        } else {
+            throw new AppException("Token doesn't exist", HttpStatus.NOT_FOUND);
+        }
+
+        return ResponseEntity.ok("New token has been successfully sent");
+
     }
 }
