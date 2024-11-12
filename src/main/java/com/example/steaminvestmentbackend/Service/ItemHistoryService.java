@@ -38,7 +38,7 @@ public class ItemHistoryService {
             .toFormatter(Locale.ENGLISH);
 
     public List<ItemHistory> getItemHistory(Long id) throws IOException {
-        List<ItemHistory> history = itemHistoryRepository.findByItemId(id);
+        List<ItemHistory> history = itemHistoryRepository.findByItemIdOrderById(id);
 
         if (history.isEmpty()) {
             Optional<ItemList> item = itemListRepository.findById(id);
@@ -47,6 +47,10 @@ public class ItemHistoryService {
                     System.out.println("Fetching history data from Steam");
                     List<ItemHistory> fetchHistory = fetchAndParseData(item.get().getMarketHashName(), item.get().getId());
                     itemHistoryRepository.saveAll(fetchHistory);
+
+                    System.out.println("Fetching current price data from Steam");
+                    ItemHistory fetchCurrent = fetchCurrentData(item.get().getMarketHashName(), item.get().getId());
+                    itemHistoryRepository.save(fetchCurrent);
                 } catch (AppException e) {
                     System.out.println("Error status: " + e.getStatus());
                     throw e;
@@ -56,20 +60,24 @@ public class ItemHistoryService {
             }
         }
 
-        return itemHistoryRepository.findByItemId(id);
+        return itemHistoryRepository.findByItemIdOrderById(id);
     }
 
     public List<ItemHistory> getItemHistoryByName(String name) throws IOException {
         ItemList item = itemListRepository.findByMarketHashName(name);
 
         if (item != null) {
-            List<ItemHistory> history = itemHistoryRepository.findByItemId(item.getId());
+            List<ItemHistory> history = itemHistoryRepository.findByItemIdOrderById(item.getId());
 
             if (history.isEmpty()) {
                 try {
                     System.out.println("Fetching history data from Steam");
                     List<ItemHistory> fetchHistory = fetchAndParseData(item.getMarketHashName(), item.getId());
                     itemHistoryRepository.saveAll(fetchHistory);
+
+                    System.out.println("Fetching current price data from Steam");
+                    ItemHistory fetchCurrent = fetchCurrentData(item.getMarketHashName(), item.getId());
+                    itemHistoryRepository.save(fetchCurrent);
                 } catch (AppException e) {
                     System.out.println("Error status: " + e.getStatus());
                     throw e;
@@ -79,7 +87,7 @@ public class ItemHistoryService {
             throw new AppException("Item with provided name doesn't exist", HttpStatus.NOT_FOUND);
         }
 
-        return itemHistoryRepository.findByItemId(item.getId());
+        return itemHistoryRepository.findByItemIdOrderById(item.getId());
 
     }
 
@@ -91,7 +99,7 @@ public class ItemHistoryService {
             if (todayPrice == null) {
                 Optional<ItemList> item = itemListRepository.findById(itemId);
                 if (item.isPresent()) {
-                    List<ItemHistory> wholeHistory = itemHistoryRepository.findByItemId(itemId);
+                    List<ItemHistory> wholeHistory = itemHistoryRepository.findByItemIdOrderById(itemId);
                     if (wholeHistory.isEmpty()) {
                         throw new AppException("Couldn't find whole price history of provided item", HttpStatus.BAD_REQUEST);
                     }

@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ItemHistoryRepository extends JpaRepository<ItemHistory, Long> {
 
-    List<ItemHistory> findByItemId(Long itemId);
+    List<ItemHistory> findByItemIdOrderById(Long itemId);
 
     @Query("SELECT i FROM ItemHistory i WHERE i.itemId = :itemId AND i.date = :date")
     ItemHistory findByItemIdAndDate(@Param("itemId") Long itemId, @Param("date") LocalDate date);
