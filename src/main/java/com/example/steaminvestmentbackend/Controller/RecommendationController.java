@@ -27,7 +27,7 @@ public class RecommendationController {
 //    }
 
     @GetMapping("/get")
-    public List<String> getRecommendations(@AuthenticationPrincipal UserDTO userDTO) {
+    public List<Map<String, Object>> getRecommendations(@AuthenticationPrincipal UserDTO userDTO) {
         //return recommendationService.recommendItemsForUser(userDTO);
         return recommendationService.getRecommendations(userDTO, 2);
     }

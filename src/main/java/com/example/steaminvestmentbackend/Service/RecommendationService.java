@@ -19,7 +19,7 @@ public class RecommendationService {
     private final ItemRepository itemRepository;
     private final ItemListRepository itemListRepository;
 
-    public List<String> getRecommendations(@AuthenticationPrincipal UserDTO userDTO, int minSupportCount) {
+    public List<Map<String, Object>> getRecommendations(@AuthenticationPrincipal UserDTO userDTO, int minSupportCount) {
         HashMap<Set<String>, Integer> aprioriResults = apriori(minSupportCount);
 
         List<Item> userItems = itemRepository.findByUserId(userDTO.getId());
@@ -33,21 +33,28 @@ public class RecommendationService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        if (aprioriRecommendations.size() >= 10) {
-            return aprioriRecommendations.subList(0, 10);
-        }
+        if (aprioriRecommendations.size() < 10) {
+            List<String> contentBasedRecommendations = recommendBasedOnContent(userDTO);
+            Set<String> finalRecommendations = new LinkedHashSet<>(aprioriRecommendations);
 
-        List<String> contentBasedRecommendations = recommendBasedOnContent(userDTO);
-        Set<String> finalRecommendations = new LinkedHashSet<>(aprioriRecommendations);
-
-        for (String recommendation : contentBasedRecommendations) {
-            if (finalRecommendations.size() >= 10) {
-                break;
+            for (String recommendation : contentBasedRecommendations) {
+                if (finalRecommendations.size() >= 10) {
+                    break;
+                }
+                finalRecommendations.add(recommendation);
             }
-            finalRecommendations.add(recommendation);
+            aprioriRecommendations = new ArrayList<>(finalRecommendations);
         }
 
-        return new ArrayList<>(finalRecommendations);
+        List<Map<String, Object>> recommendationsWithIds = new ArrayList<>();
+        for (int i = 0; i < aprioriRecommendations.size(); i++) {
+            Map<String, Object> recommendation = new HashMap<>();
+            recommendation.put("id", i + 1);
+            recommendation.put("marketHashName", aprioriRecommendations.get(i));
+            recommendationsWithIds.add(recommendation);
+        }
+
+        return recommendationsWithIds;
     }
 
     public HashMap<Set<String>, Integer> apriori(int minSupportCount) {
